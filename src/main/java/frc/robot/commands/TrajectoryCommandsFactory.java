@@ -24,9 +24,6 @@ import frc.robot.Constants.AutoConstants;
 import frc.robot.commands.drive.DriveToCoordinate;
 import frc.robot.commands.drive.PathPlanFromDynamicStartCommand;
 import frc.robot.field.ScoringPositions;
-import frc.robot.field.ScoringPositions.ScoreHeight;
-import frc.robot.field.ScoringPositions.ScoreLocation;
-import frc.robot.field.ScoringPositions.ScorePositions;
 import frc.robot.subsystems.drive.DriveSubsystem;
 import frc.robot.utils.MathUtils;
 
@@ -50,22 +47,18 @@ public class TrajectoryCommandsFactory {
         return path;
     }
 
-    public static String getPathName(ScorePositions position, ScoreLocation location, ScoreHeight height) {
-        String pathName = "";
-        String alphaPosition = ScoringPositions.ScoreClockPositionToAlphaName(position);
-        String alphaLocation = location == ScoreLocation.LEFT ? "Left" : "Right";
-        String alphaHeight = (height == ScoreHeight.L1 || height == ScoreHeight.L2 || height == ScoreHeight.L3) ? "L23" : height == ScoreHeight.L4 ? "L4" : "" ;
-
-        pathName = alphaPosition + alphaHeight + alphaLocation + "GEN";
-
-        return pathName;
-    }
-    
+  
 
     /*******************************
      * Commands
      *******************************/
 
+    /**
+     * Generate a PathPlanner pathfind command to a specific pose
+     * @param robotDrive
+     * @param endPos
+     * @return
+     */
     public static Command generatePPPathFindToPose(DriveSubsystem robotDrive, Pose2d endPos) {
 
         return  AutoBuilder.pathfindToPose(
@@ -76,6 +69,12 @@ public class TrajectoryCommandsFactory {
     }
 
 
+    /**
+     * Generate a PathPlanner pathfind command to a specific path (from file) from a dynamic start
+     * @param robotDrive
+     * @param pathName
+     * @return
+     */
     public static Command generatePPPathFindToPath(DriveSubsystem robotDrive, String pathName) {
 
         PathPlannerPath path = getPathFromFile(pathName);
@@ -92,6 +91,12 @@ public class TrajectoryCommandsFactory {
         });
     }
 
+    /**
+     * Generate a PathPlanner pathfind command to a specific path (from file) from a dynamic start then align to end pose with extra logic
+     * @param robotDrive
+     * @param pathName
+     * @return
+     */
     public static Command generatePPPathFindToPathThenAlign(DriveSubsystem robotDrive, String pathName) {
 
         PathPlannerPath path = getPathFromFile(pathName);
@@ -119,7 +124,12 @@ public class TrajectoryCommandsFactory {
         });
     }
 
-
+    /**
+     * Use the manual drive to coordinate routine to drive to the end coordinate of a path (dont use the path)
+     * @param robotDrive
+     * @param pathName
+     * @return
+     */
     public static Command generatePPTrajectoryOnTheFlyFromPath(DriveSubsystem robotDrive, String pathName) {
 
         PathPlannerPath path = getPathFromFile(pathName);
@@ -168,128 +178,6 @@ public class TrajectoryCommandsFactory {
         path.preventFlipping = true;
         return AutoBuilder.followPath(path); 
     }
-
-
-
-    public static Command getPathFollowCommandFromPositionLocAndHeight(DriveSubsystem robotDrive, ScorePositions position, ScoreLocation location, ScoreHeight height ) {
-        return generatePPPathFindToPathThenAlign(robotDrive, getPathName(position, location, height));
-    }
-
-
-    public static Command getPathFollowCommandClearAlgae(DriveSubsystem robotDrive, ScorePositions position, Boolean rev, Boolean fastClear) {
-        String suffix = "";
-        if(rev){
-            suffix += "REV";
-        }
-        if(fastClear){
-            return generatePPTrajectoryOnTheFlyFromPath(robotDrive, "CLEAR" + ScoringPositions.ScoreClockPositionToAlphaName(position) + suffix + "GEN");
-        } else {
-            return generatePPPathFindToPathThenAlign(robotDrive, "CLEAR" + ScoringPositions.ScoreClockPositionToAlphaName(position) + suffix + "GEN");
-        }
-    }
-
-    public static Pose2d getPathFinishingPose(ScorePositions position, ScoreLocation location, ScoreHeight height){
-
-        PathPlannerPath path = getPathFromFile(getPathName(position, location, height));
-        if (path == null) {
-            System.out.println("Error loading path");
-            return new Pose2d();
-        }
-       return  new Pose2d(path.getWaypoints().get(path.getWaypoints().size() - 1).anchor().getX(), 
-                                path.getWaypoints().get(path.getWaypoints().size() - 1).anchor().getY(),
-                                path.getGoalEndState().rotation());
-
-      
-    }
-
-
-    public static final Map<String, Command> getAllScoringCommands(DriveSubsystem robotDrive, Boolean left, Boolean top) {
-        Map<String, Command> commands = new HashMap<>();
-        for (ScorePositions pos : ScoringPositions.scorePositionsList) {
-            for (ScoreLocation loc : ScoreLocation.values()) {
-                for (ScoreHeight height : ScoreHeight.values()) {
-                    commands.put(pos.toString() + loc.toString() + height.toString(), getPathFollowCommandFromPositionLocAndHeight(robotDrive, pos, loc, height));
-                }
-            }
-        }
-
-        return commands;
-    }
-
-
-    public static final Map<String, Command> getAllClearingCommands(DriveSubsystem robotDrive, Boolean fastClear) {
-        Map<String, Command> commands = new HashMap<>();
-        for (ScorePositions pos : ScoringPositions.scorePositionsList) {
-                commands.put("CLEAR" + pos.toString(), getPathFollowCommandClearAlgae(robotDrive,pos, false, fastClear));
-                commands.put("CLEAR" + pos.toString() +  "REV", getPathFollowCommandClearAlgae(robotDrive,pos, true, fastClear));
-        }
-
-        return commands;
-    }
-
-
-    public static final Command getClearingSelectedCommand(DriveSubsystem robotDrive, Boolean fastDrive, Supplier<String> selectedCommandSupplier){
-        Map <String, Command> commands = getAllClearingCommands(robotDrive, fastDrive);
-        return new SelectCommand<>(
-            commands,
-            selectedCommandSupplier
-        );
-    }
-
-    public static final Command getScoringClosestCommand(DriveSubsystem robotDrive, Boolean left, Boolean top){
-        return getScoringSelectedCommand(robotDrive, left, top, MathUtils.getClosestScoringTargetSupplier(robotDrive, left, top));
-    }
-
-    public static final Command getScoringSelectedCommand(DriveSubsystem robotDrive, Boolean left, Boolean top, Supplier<String> selectedCommandSupplier){
-        Map <String, Command> commands = getAllScoringCommands(robotDrive, left, top);
-        return new SelectCommand<>(
-            commands,
-            selectedCommandSupplier
-        );
-    }
-
-    public static final Command GoToRightIntake(DriveSubsystem robotDrive){
-        return generatePPPathFindToPathThenAlign(robotDrive, "IntakeRIGHT");
-    }
-
-    public static final Command GoToLeftIntake(DriveSubsystem robotDrive){
-        return generatePPPathFindToPathThenAlign(robotDrive, "IntakeLEFT");
-    }
-
-    public static final Command GoToLeftCage(DriveSubsystem robotDrive){
-        return Commands.runOnce(()->System.out.println("DRIVING TO LEFT CAGE")).andThen(generatePPPathFindToPathThenAlign(robotDrive, "LeftClimb"));
-    }
-
-    public static final Command GoToRightCage(DriveSubsystem robotDrive){
-        return Commands.runOnce(()->System.out.println("DRIVING TO RIGHT CAGE")).andThen(generatePPPathFindToPathThenAlign(robotDrive, "RightClimb"));
-    }
-
-    public static final Command GoToMiddleCage(DriveSubsystem robotDrive){
-        return Commands.runOnce(()->System.out.println("DRIVING TO MIDLE CAGE")).andThen(generatePPPathFindToPathThenAlign(robotDrive, "MiddleClimb"));
-    }
-
-    public static final Map<String, Command> getAllCageCommands(DriveSubsystem robotDrive) {
-        Map<String, Command> commands = new HashMap<>();
-        commands.put("CAGE1", GoToLeftCage(robotDrive));
-        commands.put("CAGE2", GoToMiddleCage(robotDrive));
-        commands.put("CAGE3", GoToRightCage(robotDrive));
-
-
-        return commands;
-    }
-
-    public static final Command goToSelectedCageCommand(DriveSubsystem robotDrive, Supplier<String> selectedCommandSupplier){
-        Map <String, Command> commands = getAllCageCommands(robotDrive);
-        return new SelectCommand<>(
-            commands,
-            selectedCommandSupplier
-        ).andThen(()->System.out.println("Selected" +  selectedCommandSupplier.get()));
-    }
-
+   
     
-
-
-    
-
-
 }

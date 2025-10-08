@@ -47,7 +47,6 @@ import frc.robot.Constants.DriveConstants;
 import frc.robot.utils.MathUtils;
 import frc.robot.vision.Limelight;
 import frc.robot.field.ScoringPositions;
-import frc.robot.field.ScoringPositions.ScorePositions;
 import frc.robot.utils.LimelightHelpers;
 import frc.robot.utils.LimelightHelpers.PoseEstimate;
 
@@ -107,12 +106,7 @@ public class DriveSubsystem extends SubsystemBase {
   private boolean m_joystickLockoutRotateFieldOriented;
   private double m_transXLockoutValue;
   private double m_transYLockoutValue;
-  private long m_lastPoseUpdate;
-  private double startTime = 0;
-  private boolean m_ignore12Oclock = false;
 
-  private int reefTagCounter = 0;
-  private int reefTagNoCounter = 0;
 
   //init field object for elastic dashboard
   private Field2d m_field = new Field2d();
@@ -124,15 +118,11 @@ public class DriveSubsystem extends SubsystemBase {
   private Limelight m_limelight_side;
   private Limelight m_Limelight3;
 
-  private Pose2d lastPose = null;
-
   private final SwerveDrivePoseEstimator m_poseEstimator;
 
   private final MutVoltage m_appliedVoltage = Volts.mutable(0);
   private final MutDistance m_distance = Meters.mutable(0);
   private final MutLinearVelocity m_velocity = MetersPerSecond.mutable(0);
-  private final XboxController m_outputController;
-  ScorePositions m_scorePosition = null;
 
   private final SysIdRoutine m_sysIdRoutine = new SysIdRoutine(
       // Empty config defaults to 1 volt/second ramp rate and 7 volt step voltage.
@@ -188,7 +178,7 @@ public class DriveSubsystem extends SubsystemBase {
           this));
 
   /** Creates a new DriveSubsystem. */
-  public DriveSubsystem(Limelight ll, Limelight l2,Limelight l3, XboxController outputController) {
+  public DriveSubsystem(Limelight ll, Limelight l2,Limelight l3) {
 
     //init field dashboard
     SmartDashboard.putData("Field", m_field);
@@ -197,7 +187,6 @@ public class DriveSubsystem extends SubsystemBase {
     m_joystickLockoutRotate = false;
     m_joystickLockoutRotateFieldOriented = false;
 
-    m_outputController = outputController;
 
     visionEnabled=true;
     SmartDashboard.putBoolean("LimelightVisionEnabled", visionEnabled);
@@ -209,7 +198,6 @@ public class DriveSubsystem extends SubsystemBase {
     m_limelight_side = l2;
     m_Limelight3 = l3;
 
-    m_lastPoseUpdate = 0;
 
     
     m_gyro.setYaw(180);
@@ -305,7 +293,6 @@ public class DriveSubsystem extends SubsystemBase {
 
 
   public void setIgnore12Oclock(boolean ignore){
-    m_ignore12Oclock = ignore;
     //create an array list of n poses, and convert to array
     //add call setfiducialidfiltersoverride
     List <Integer> poses = new ArrayList<Integer>();
@@ -325,7 +312,6 @@ public class DriveSubsystem extends SubsystemBase {
     m_limelight_side.SetFiducialIDFiltersOverride(poses.stream().mapToInt(Integer::intValue).toArray());
     m_Limelight3.SetFiducialIDFiltersOverride(poses.stream().mapToInt(Integer::intValue).toArray());
 
-    
     }
 
     public void setIgnoreAutoExtras(boolean ignore){
@@ -353,101 +339,6 @@ private void addLimelightVisionMeasurement(Limelight ll, boolean primary) {
 }
     
 
-  private void addLimelightVisionMeasurementV1(Limelight ll, boolean primary) {
-
-    double[] pose;
-    double transStd;
-    double rotStd;
-    long currentUpdateTime = 0;
-    TimestampedDoubleArray poseWithTime;
-
-    if (!ll.getIsPipelineAprilTag()) {
-      return;
-    }
-    boolean validPose = ll.checkValidTarget();
-    poseWithTime = ll.getBotPoseBlue();
-    if (!validPose) {
-      return;
-    }
-
-    currentUpdateTime = poseWithTime.timestamp;
-
-    if (currentUpdateTime == m_lastPoseUpdate) {
-      return;
-    }
-    m_lastPoseUpdate = currentUpdateTime;
-
-    // observed bad tracking when tag is very close to edge
-    double offsetX = ll.getTargetOffsetX();
-
-    if (Math.abs(offsetX) < 32.5) {
-
-      pose = poseWithTime.value;
-      Pose2d limelightPose = ll.AsPose2d(pose);
-
-      double[] cameraToAprilTagPose = ll.getTargetPoseCameraSpace();
-
-      if(cameraToAprilTagPose.length > 0){
-        double distanceToAprilTagSquared = cameraToAprilTagPose[0] * cameraToAprilTagPose[0]
-            + cameraToAprilTagPose[2] * cameraToAprilTagPose[2];
-        double poseDelta = m_poseEstimator.getEstimatedPosition().getTranslation()
-            .getDistance(limelightPose.getTranslation());
-
-            SmartDashboard.putNumber("Dist2AprilTag", distanceToAprilTagSquared);
-            SmartDashboard.putNumber("PoseDelta", poseDelta);
-            
-            SmartDashboard.putNumber("Closest Tag", ll.getTargetID());
-
-          if(MathUtils.IsCloseToIntakeStation(m_poseEstimator.getEstimatedPosition()) && distanceToAprilTagSquared > 4 && (ll.getTargetID() == 7 ||  ll.getTargetID() == 18)){
-            return;
-          }
-            
-        if (distanceToAprilTagSquared < 6 && poseDelta < .35) {
-          transStd = 0.20;
-          rotStd = 10;
-        } else if (distanceToAprilTagSquared < 9 && poseDelta < .5) {
-          transStd = 0.5;
-          rotStd = 10;
-        } else if (distanceToAprilTagSquared < 16) {
-          transStd = 1.0;
-          rotStd = 15;
-        } else {
-          return;
-        }
-
-        if (limelightPose.getX() > .5) {
-          // Apply vision measurements. pose[6] holds the latency/frame delay
-          m_poseEstimator.addVisionMeasurement(
-              limelightPose,
-              Timer.getFPGATimestamp() - (pose[6] / 1000.0),
-              VecBuilder.fill(transStd, transStd, Units.degreesToRadians(rotStd)));
-        }
-      }else{
-        System.out.println("Unable to add limelight measurement");
-      }
-    }
-  }
-
-
-
-  private void trackReefTag(int tagId){
-    if(( tagId >=17 && tagId <=22 ) || ( tagId >=6 && tagId <=11 )){
-        reefTagCounter = 1;
-        reefTagNoCounter = 0;
-    }else{
-        reefTagNoCounter ++;
-    }
-
-    if (reefTagNoCounter >=25){
-      reefTagCounter = 0;
-    }
-
-  }
-
-  public Boolean seeReef(){
-    return reefTagCounter >0;
-  }
-
   private void addLimelightVisionMeasurementV2(Limelight ll, boolean primary) {
 
     double transStd;
@@ -463,20 +354,15 @@ private void addLimelightVisionMeasurement(Limelight ll, boolean primary) {
     PoseEstimate robot_blue_pose = ll.GetBotPoseMT1();
 
     if (!validPose || robot_blue_pose == null ||robot_blue_pose.rawFiducials.length < 1 ) {
-      trackReefTag(0);
       return;
     }
 
-
-
     if(robot_blue_pose.rawFiducials[0].ambiguity > .7)
     {
-      trackReefTag(0);
       return;
     }
     if(robot_blue_pose.rawFiducials[0].distToCamera > 3)
     {
-      trackReefTag(0);
       return;
     }
 
@@ -500,21 +386,6 @@ private void addLimelightVisionMeasurement(Limelight ll, boolean primary) {
             
             SmartDashboard.putNumber("Closest Tag", ll.getTargetID());
 
-          if(MathUtils.IsCloseToIntakeStation(m_poseEstimator.getEstimatedPosition()) && distanceToAprilTagSquared > 2.5 && (ll.getTargetID() == 7 ||  ll.getTargetID() == 18)){
-            return;
-          }
-
-          if(!MathUtils.IsCloseToIntakeStation(m_poseEstimator.getEstimatedPosition()) && (ll.getTargetID() == 1 ||  ll.getTargetID() == 2 || ll.getTargetID() == 13 || ll.getTargetID() == 12)){
-            return;
-          }
-
-          if((ll.getTargetID() == 16 || ll.getTargetID() == 3)){
-            return;
-          }
-
-          if(m_ignore12Oclock && (ll.getTargetID() == 10 ||  ll.getTargetID() == 21)){
-            return;
-          }
 
         if (distanceToAprilTagSquared < 1 && poseDelta < .35 && primary) {
           transStd = 0.125;
@@ -537,11 +408,6 @@ private void addLimelightVisionMeasurement(Limelight ll, boolean primary) {
         if (robot_blue_pose.pose.getX() > .5) {
           // Apply vision measurements. pose[6] holds the latency/frame delay
           seeTag = true;
-          try{
-            trackReefTag((int)ll.getTargetID());
-          } catch(Exception e){
-
-          }
           m_poseEstimator.addVisionMeasurement(
             robot_blue_pose.pose,
             robot_blue_pose.timestampSeconds,
@@ -552,9 +418,6 @@ private void addLimelightVisionMeasurement(Limelight ll, boolean primary) {
       }
     }
 
-    if(!seeTag){
-      trackReefTag(0);
-    }
   }
 
 
@@ -581,27 +444,6 @@ private void addLimelightVisionMeasurement(Limelight ll, boolean primary) {
     }
   }
 
-private void housLimelight(){
-  Boolean doRejectUpdate = false;
-
-  LimelightHelpers.SetRobotOrientation("limelight-climb", m_poseEstimator.getEstimatedPosition().getRotation().getDegrees(), 0, 0, 0, 0, 0);
-      LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-climb");
-      if(Math.abs(m_gyro.getRate()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-      {
-        doRejectUpdate = true;
-      }
-      if(mt2.tagCount == 0)
-      {
-        doRejectUpdate = true;
-      }
-      if(!doRejectUpdate)
-      {
-        m_poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
-        m_poseEstimator.addVisionMeasurement(
-            mt2.pose,
-            mt2.timestampSeconds);
-      }
-}
 
 
 
@@ -618,26 +460,6 @@ private void housLimelight(){
     updateOdometry();
     SmartDashboard.getBoolean("LimelightVisionEnabled", visionEnabled);
 
-    var closestScoringPose = MathUtils.getClosestScoringTarget(getPose());
-    if(m_scorePosition == null || !m_scorePosition.equals(closestScoringPose)){
-      m_scorePosition = closestScoringPose;
-      m_outputController.setRumble(XboxController.RumbleType.kRightRumble, ScoringPositions.ScorePositionToRumbleValue(m_scorePosition));
-    }
-    SmartDashboard.putString("AUTO CLOSEST POSITION", closestScoringPose.toString());
-    //SmartDashboard.putBoolean("CloseToIntake",MathUtils.IsCloseToIntakeStation(m_poseEstimator.getEstimatedPosition()));
-    
-    /*
-    if(lastPose != null){
-    //get the velocity, using startTime, current time, getPose, and lastPose
-     var poseDelta = getPose().getTranslation().minus(lastPose.getTranslation());
-     var velocity = Math.sqrt(poseDelta.getX() *  poseDelta.getX() + poseDelta.getY() *poseDelta.getY()) / (Timer.getFPGATimestamp() - startTime);
-     SmartDashboard.putNumber("Velocity", velocity);
-
-    }
-     startTime = Timer.getFPGATimestamp();
-     lastPose = getPose();
-     */
-    // output the distance 
   }
 
 
