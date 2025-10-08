@@ -48,7 +48,7 @@ public class ElevatorSubsystemFalcon extends SubsystemBase {
     private boolean stallStop = false;
     private final MotionMagicVoltage m_request = new MotionMagicVoltage(0);
 
- private final MutVoltage m_appliedVoltage = (Volts.mutable(0));
+    private final MutVoltage m_appliedVoltage = (Volts.mutable(0));
     private final MutAngle m_distance = (Rotations.mutable(0));
     private final MutAngularVelocity m_velocity = (RotationsPerSecond.mutable(0));
 

@@ -133,50 +133,7 @@ public class ArmSubsystemFalcon extends SubsystemBase {
        
         SmartDashboard.putNumber("Arm Falcon Angle Deg", Math.toDegrees((getFalconAngleRadians())));
         //SmartDashboard.putNumber("Falcon Angular Velocity", getFalconAngularVelocityRadiansPerSec());
-/*
-        var newP = SmartDashboard.getNumber("ARM P", usedP);
-        var newI = SmartDashboard.getNumber("ARM I", usedI);
-        var newD = SmartDashboard.getNumber("ARM D", usedD);
-        var newV = SmartDashboard.getNumber("ARM V", usedV);
-        var newG = SmartDashboard.getNumber("ARM G", usedG);
-        
-        if (newP != usedP) {
-            usedP = newP;
-            configs.Slot0.kP =(usedP);
-            TalonUtils.ApplyTalonConfig(m_motor, configs);
-            System.out.println("Using P of " + usedP);
-        }
 
-        if (newI != usedI) {
-            usedI = newI;
-            configs.Slot0.kI = (usedI);
-            TalonUtils.ApplyTalonConfig(m_motor, configs);
-            System.out.println("Using I of " + usedI);
-
-        }
-
-        if (newD != usedD) {
-            usedD = newD;
-            configs.Slot0.kD =(usedD);
-            TalonUtils.ApplyTalonConfig(m_motor, configs);
-            System.out.println("Using D of " + usedD);
-
-        }
-
-        if (newV != usedV && newV != 0) {
-            usedV = newV;
-            System.out.println("Using V of " + usedV);
-            configs.Slot0.kV=(usedV);
-            TalonUtils.ApplyTalonConfig(m_motor, configs);
-        }
-
-        if (newG != usedG && newG != 0) {
-            usedG = newG;
-            configs.Slot0.kG =(usedG);
-            TalonUtils.ApplyTalonConfig(m_motor, configs);
-            System.out.println("Using G of " + usedG);
-        }
-            */
 
         if(!manualControl){
             RunArmToPos();

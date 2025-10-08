@@ -75,7 +75,6 @@ public abstract class CenterToTargetCommand extends Command {
     @Override
     public boolean isFinished() {
         var done = checkTurningDone();
-        System.out.println("Is finished = " + done);
         SmartDashboard.putBoolean("Square to Target?", done);
         return !m_infinite && done;
     }
