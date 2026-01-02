@@ -22,12 +22,9 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.IOConstants;
-import frc.robot.commands.drive.CenterToGoalCommand;
 import frc.robot.commands.drive.DriveDistanceCommand;
-import frc.robot.commands.drive.DriveToTargetCommand;
 import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.drive.DriveSubsystem;
-import frc.robot.utils.Types.GoalType;
 import frc.robot.utils.Types.LEDState;
 import frc.robot.utils.Types.SysidMechanism;
 import frc.robot.vision.Limelight;
@@ -127,18 +124,7 @@ public class RobotContainer {
         private void InitializeNamedCommands() {
                 NamedCommands.registerCommand("Forward1", new DriveDistanceCommand(m_robotDrive, 1));
                 NamedCommands.registerCommand("Forward0.5", new DriveDistanceCommand(m_robotDrive, 0.5));
-                NamedCommands.registerCommand("GrabTarget", new DriveToTargetCommand(m_robotDrive, m_picam, 2.25, 1));
                 NamedCommands.registerCommand("ForceStop", Commands.runOnce(() -> m_robotDrive.forceStop()));
-               
-                NamedCommands.registerCommand("DriveToNote", new DriveToTargetCommand(m_robotDrive, m_picam, 1, 1));
-                
-                NamedCommands.registerCommand("CenterToTarget", new CenterToGoalCommand(m_robotDrive, false));
-                NamedCommands.registerCommand("CenterToTargetInverse", new CenterToGoalCommand(m_robotDrive, false, true));
-
-                NamedCommands.registerCommand("CenterToTargetInfinite", new CenterToGoalCommand(m_robotDrive, true));
-                NamedCommands.registerCommand("CenterToTargetInfiniteInverse", new CenterToGoalCommand(m_robotDrive, true, true, GoalType.SPEAKER, Math.toRadians(10)));
-                
-               
           }
 
         /**

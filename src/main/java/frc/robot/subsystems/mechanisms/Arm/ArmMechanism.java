@@ -1,12 +1,11 @@
-package frc.robot.mechanisms.Arm;
+package frc.robot.subsystems.mechanisms.Arm;
 
 import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.FunctionalCommand;
-import frc.robot.mechanisms.Mechanism;
-import frc.robot.Constants.ElevatorConstants;
+import frc.robot.subsystems.mechanisms.Mechanism;
 import frc.robot.utils.Types.FeedForwardConstants;
 import frc.robot.utils.Types.Limits;
 import frc.robot.utils.Types.PidConstants;
@@ -18,8 +17,8 @@ public abstract class ArmMechanism extends Mechanism{
     protected final int kUpdateInterval = 10; //update every 10 cycles
     protected double m_targetPosition = 0;
 
-     public ArmMechanism(Limits limits, String name, PidConstants pid, FeedForwardConstants ff) {
-        super(name, pid, ff,  ElevatorConstants.kDiffThreshold, ElevatorConstants.kStaleThreshold, ElevatorConstants.kStaleTolerance);
+     public ArmMechanism(Limits limits, String name, PidConstants pid, FeedForwardConstants ff, double diffThreshold, int staleThreshold, double staleTolerance) {
+        super(name, pid, ff, diffThreshold, staleThreshold, staleTolerance);
         m_limits = limits;
 
         toggleShowPIDTuning(false); //set to true to enable PID tuning on dashboard
@@ -65,6 +64,19 @@ public abstract class ArmMechanism extends Mechanism{
         return isFinished || delta < Math.toRadians(10);
     }
 
+    /**
+     * @brief Initializes a motion to a given position in radians
+     * @param position The target position in radians
+     * @note This does not start the motion, it just sets the target position. The motion will be run in the periodic method
+     */
+    protected void InitMotion(double positionRadians){
+        double sanitizedSetpoint = sanitizePositionSetpoint(positionRadians);
+        m_targetPosition = sanitizedSetpoint;
+        manualControl = false;
+        staleCounter = 0; //new target, reset stale counter
+        SmartDashboard.putNumber("Arm setpoint" + m_name, m_targetPosition);
+    }
+
      /******************************************************
      * Abstract Methods to be written by the specific motor elevator class
      ******************************************************/
@@ -74,25 +86,35 @@ public abstract class ArmMechanism extends Mechanism{
     protected abstract void resetEncoder();
 
 
-    protected abstract void InitMotion(double position);
     protected abstract void RunArm();
+
+
+    protected double sanitizePositionSetpoint(double setpoint){
+        if (setpoint > m_limits.high){
+            setpoint = m_limits.high;
+        }
+        if(setpoint < m_limits.low){
+            setpoint = m_limits.low;
+        }
+        return setpoint;
+    }
 
 
     /********************************************************
      * Commands
      ********************************************************/
 
-    public Command RunArmToPositionCommand(double setpoint, Boolean async) {
+    public Command RunArmToPositionCommand(double setpointRadians, Boolean async) {
         return new FunctionalCommand(
-                () -> {InitMotion(setpoint);},
+                () -> {InitMotion(setpointRadians);},
                 () -> {},
                 (interrupted) -> {},
                 () -> {return async || isFinished();},this).withName("RunArmToPositionCommand");
     }
 
-    public Command RunArmToPositionCommandEarlyStop(double setpoint) {
+    public Command RunArmToPositionCommandEarlyStop(double setpointRadians) {
         return new FunctionalCommand(
-                () -> {InitMotion(setpoint);},
+                () -> {InitMotion(setpointRadians);},
                 () -> {},
                 (interrupted) -> {},
                 () -> {return isFinishedEarly();},this).withName("RunArmToPositionCommand");

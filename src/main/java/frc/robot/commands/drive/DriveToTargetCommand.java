@@ -25,11 +25,10 @@ public class DriveToTargetCommand extends Command {
     private int m_gotTargetCounter;
     private Pose2d m_startingPosition;
     private double m_startingV;
+    private boolean rampSpeed;
 
     private final PiCamera m_picam;
-    private  double m_speed;
     private  DoubleSupplier m_speed_supplier;
-    private final boolean m_dynamic_speed;
     private final double m_maxDistance;
     private TrapezoidProfile speed_profile;
     private int m_iterationCounter;
@@ -42,26 +41,20 @@ public class DriveToTargetCommand extends Command {
             DriveToTargetCommandConstants.kPidValues.d, m_constraints,
             Constants.kDt);
 
-    public DriveToTargetCommand(DriveSubsystem robot_drive, PiCamera picam, double speed, double maxDistance) {
-
-        this.m_drive = robot_drive;
-        this.m_picam = picam;
-        this.m_speed = speed;
-        this.m_maxDistance = maxDistance;
-        this.m_dynamic_speed = false;
-
-
-        addRequirements(m_drive);
-
-    }
-
-    public DriveToTargetCommand(DriveSubsystem robot_drive, PiCamera picam, DoubleSupplier speed, double maxDistance) {
+    /**
+     * 
+     * @param robot_drive
+     * @param picam
+     * @param speed         Suplier for speed, in meters per second
+     * @param rampSpeed     If true, speed will ramp up to the supplied speed, otherwise will just use the supplied speed directly
+     * @param maxDistance   Maximum distance to drive before stopping if we 'run away' to a target too far
+     */
+    public DriveToTargetCommand(DriveSubsystem robot_drive, PiCamera picam, DoubleSupplier speed, boolean rampSpeed, double maxDistance) {
 
         this.m_drive = robot_drive;
         this.m_picam = picam;
         this.m_speed_supplier = speed;
         this.m_maxDistance = maxDistance;
-        this.m_dynamic_speed = true;
 
         addRequirements(m_drive);
 
@@ -85,6 +78,7 @@ public class DriveToTargetCommand extends Command {
         //configure motion controller
         m_controller_theta.reset(m_drive.getHeadingInRadians());
         m_controller_theta.setTolerance(0.01);
+
         var startingSpeeds = m_drive.getRobotRelativeSpeeds();
         m_startingV = Math.sqrt(startingSpeeds.vxMetersPerSecond *  startingSpeeds.vxMetersPerSecond + 
         startingSpeeds.vyMetersPerSecond *  startingSpeeds.vyMetersPerSecond);
@@ -105,18 +99,20 @@ public class DriveToTargetCommand extends Command {
     @Override
     public void execute() {
 
-        if(!this.m_dynamic_speed){
+        if(this.rampSpeed){
             if(m_startingV < .20){
                 m_startingV = .20;
             }
         
             m_iterationCounter++;
-            if(m_iterationCounter %2 ==0 && m_startingV < m_speed){
+            if(m_iterationCounter %2 ==0 && m_startingV < m_speed_supplier.getAsDouble()){
                 m_startingV += .075;
             }
+            System.out.println("Ramping Speed is now " + m_startingV);
+        }
+        if(m_startingV < m_speed_supplier.getAsDouble() && this.rampSpeed){
             driveToTarget(m_startingV, m_maxDistance);
-        }else{
-            System.out.println(m_speed_supplier.getAsDouble());
+        } else {
             driveToTarget(m_speed_supplier.getAsDouble(), m_maxDistance);
         }
     }
@@ -165,7 +161,7 @@ public class DriveToTargetCommand extends Command {
                     piAngle,
                     m_controller_theta);
 
-            if (rotationVel > -100) {
+            if (rotationVel > -100) { //-100 is error condition
 
                 m_drive.setRotateLockoutValue(rotationVel);
                 m_drive.drive(speed, 0, rotationVel, false, false);

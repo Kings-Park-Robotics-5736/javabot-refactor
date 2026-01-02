@@ -26,28 +26,29 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.LEDConstants;
 import frc.robot.utils.Types.LEDState;
 
-
-
-
 public class LEDSubsystem extends SubsystemBase {
     private CANdle candle;
     private CANdleConfiguration config;
     private int LedCount = 300;
-    
+
     private Animation colorFlowAnimation = new ColorFlowAnimation(128, 20, 70, 0, 0.7, LedCount, Direction.Forward);
     private Animation fireAnimation = new FireAnimation(0.5, 0.25, LedCount, 0.5, 0.3);
     private Animation larsonAnimation = new LarsonAnimation(0, 255, 46, 0, 1, LedCount, BounceMode.Front, 3);
     private Animation rainbowAnimation = new RainbowAnimation(1, 0.1, LedCount);
     private Animation rgbFadeAnimation = new RgbFadeAnimation(0.7, 0.4, LedCount);
-    private Animation singleFadeAnimation= new SingleFadeAnimation(50, 2, 200, 0, 0.5, LedCount);
+    private Animation singleFadeAnimation = new SingleFadeAnimation(50, 2, 200, 0, 0.5, LedCount);
     private Animation strobeAnimation = new StrobeAnimation(240, 10, 180, 0, 98.0 / 256.0, LedCount);
     private Animation twinkleAnimation = new TwinkleAnimation(30, 70, 60, 0, 0.4, LedCount, TwinklePercent.Percent6);
-    private Animation twinkleOffAnimation= new TwinkleOffAnimation(70, 90, 175, 0, 0.8, LedCount, TwinkleOffPercent.Percent100);
-
+    private Animation twinkleOffAnimation = new TwinkleOffAnimation(70, 90, 175, 0, 0.8, LedCount,
+            TwinkleOffPercent.Percent100);
+    public static final int[] redRGB = { 255, 0, 0 };
+    public static final int[] GreenRGB = { 0, 255, 0 };
+    public static final int[] BlueRGB = { 0, 0, 255 };
+    public static final int[] PurpleRGB = { 255, 0, 255 };
 
     public LEDSubsystem() {
         candle = new CANdle(LEDConstants.CANdleID, "rio");
-        config = new CANdleConfiguration();  
+        config = new CANdleConfiguration();
         config.stripType = LEDStripType.GRB;
         config.brightnessScalar = 1;
         config.statusLedOffWhenActive = false;
@@ -58,103 +59,97 @@ public class LEDSubsystem extends SubsystemBase {
         setLEDOff();
     }
 
-
     public void setAllLEDColor(int[] rgb) {
 
         candle.setLEDs(rgb[0], rgb[1], rgb[2]);
-        
+
         candle.modulateVBatOutput(1);
-      }
-    
+    }
+
     // Turn one LED to a specific color
     public void setOneLEDColor(int[] rgb, int ledNumber) {
 
-    candle.setLEDs(rgb[0], rgb[1], rgb[2], 0, ledNumber, 100);
+        candle.setLEDs(rgb[0], rgb[1], rgb[2], 0, ledNumber, 100);
 
-    candle.modulateVBatOutput(0.9);
+        candle.modulateVBatOutput(0.9);
     }
-    
+
     public void setLEDOff() {
-    candle.setLEDs(0, 0, 0);
-    candle.modulateVBatOutput(0);
+        candle.setLEDs(0, 0, 0);
+        candle.modulateVBatOutput(0);
     }
-    
 
     public void animate(String toAnimate) {
         if (toAnimate == "ColorFlowAnimation") {
             candle.animate(colorFlowAnimation);
-        }
-        else if (toAnimate == "FireAnimation") {
+        } else if (toAnimate == "FireAnimation") {
             candle.animate(fireAnimation);
-        }
-        else if (toAnimate == "LarsonAnimation") {
+        } else if (toAnimate == "LarsonAnimation") {
             candle.animate(larsonAnimation);
-        }
-        else if (toAnimate == "RainbowAnimation") {
+        } else if (toAnimate == "RainbowAnimation") {
             candle.animate(rainbowAnimation);
-        }
-        else if (toAnimate == "RgbFadeAnimation") {
+        } else if (toAnimate == "RgbFadeAnimation") {
             candle.animate(rgbFadeAnimation);
-        }
-        else if (toAnimate == "SingleFadeAnimation") {
+        } else if (toAnimate == "SingleFadeAnimation") {
             candle.animate(singleFadeAnimation);
-        }
-        else if (toAnimate == "StrobeAnimation") {
+        } else if (toAnimate == "StrobeAnimation") {
             candle.animate(strobeAnimation);
-        }
-        else if (toAnimate == "TwinkleAnimation") {
+        } else if (toAnimate == "TwinkleAnimation") {
             candle.animate(twinkleAnimation);
-        }
-        else if (toAnimate == "TwinkleOffAnimation") {
+        } else if (toAnimate == "TwinkleOffAnimation") {
             candle.animate(twinkleOffAnimation);
         }
     }
-    public void SetLEDState(LEDState state){
-        var alliance = DriverStation.getAlliance();
-        switch (state){
+
+    public void SetLEDState(LEDState state) {
+        switch (state) {
             case IN_RANGE:
             case SEE_TAG:
-                setAllLEDColor(LEDConstants.GreenRGB);
+                setAllLEDColor(GreenRGB);
                 break;
-            case HAVE_NOTE:
+            case HAVE_PIECE:
                 setLEDOff();
-                 setAllLEDColor(LEDConstants.PurpleRGB);
-                 break;
-            case NO_NOTE:
+                setAllLEDColor(PurpleRGB);
+                break;
+            case NO_PIECE:
             case NONE:
-             if (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Blue) {
-                setLEDOff();
-                    setAllLEDColor(LEDConstants.BlueRGB);
-                }else{
+                var alliance = DriverStation.getAlliance();
+                if (alliance.isPresent() && alliance.get() == DriverStation.Alliance.Blue) {
                     setLEDOff();
-                    setAllLEDColor(LEDConstants.redRGB);
+                    setAllLEDColor(BlueRGB);
+                } else {
+                    setLEDOff();
+                    setAllLEDColor(redRGB);
                 }
                 break;
         }
-       
+
     }
 
-    public Command SetLEDOnInstantCommand(){
-        return this.runOnce(() -> setAllLEDColor(LEDConstants.redRGB));
+    public Command SetLEDOnInstantCommand() {
+        return this.runOnce(() -> setAllLEDColor(redRGB));
     }
 
-    public Command SetLEDOffInstantCommand(){
+    public Command SetLEDOffInstantCommand() {
         return this.runOnce(() -> setLEDOff());
     }
-      
+
     public Command SetLEDOn() {
         return new FunctionalCommand(
-            () -> System.out.println("LED on"), 
-            () -> {setAllLEDColor(LEDConstants.redRGB);System.out.println(candle.get5VRailVoltage());},
-            (interrupted) -> setLEDOff(),
-            () -> false, this); 
+                () -> System.out.println("LED on"),
+                () -> {
+                    setAllLEDColor(redRGB);
+                    System.out.println(candle.get5VRailVoltage());
+                },
+                (interrupted) -> setLEDOff(),
+                () -> false, this);
     }
 
     public Command LedAnimate(String toAnimate) {
         return new FunctionalCommand(
-            () -> System.out.println("Animate Start"),  
-            () -> animate(toAnimate),    
-            (interrupted) -> setLEDOff(),
-            () -> false, this);
-    } 
+                () -> System.out.println("Animate Start"),
+                () -> animate(toAnimate),
+                (interrupted) -> setLEDOff(),
+                () -> false, this);
+    }
 }

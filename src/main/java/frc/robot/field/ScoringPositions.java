@@ -3,7 +3,6 @@ package frc.robot.field;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj.DriverStation;
 
 public final class ScoringPositions {
     public static final Pose2d kBlueScoringPosition = new Pose2d(new Translation2d(0, 5.55), Rotation2d.fromDegrees(0));

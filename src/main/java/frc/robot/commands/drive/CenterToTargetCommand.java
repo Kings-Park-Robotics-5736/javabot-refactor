@@ -79,11 +79,6 @@ public abstract class CenterToTargetCommand extends Command {
         return !m_infinite && done;
     }
 
-    protected void stop() {
-        m_drive.setRotateLockoutValue(0);
-        m_drive.drive(0, 0, 0, false, false);
-        System.out.println("----------------Centering to target Done-----------------------");
-    }
 
     // to be implemented by the inherited classes.
     protected abstract boolean checkTurningDone();

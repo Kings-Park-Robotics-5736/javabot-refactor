@@ -34,6 +34,7 @@ public class DriveCommandsCommon {
         double finalVelTheta = -100;
         if (degPi > -1000) {
 
+            //Get the output of the PID calculation first
             final double turnOutput;
             if (useCameraMeasurement) {
                 turnOutput = m_controller_theta.calculate(heading,
@@ -42,25 +43,30 @@ public class DriveCommandsCommon {
                 turnOutput = m_controller_theta.calculate(heading);
             }
 
+            //calculate the veloicty as a result of the PID calculation
             double vel_pid_theta = turnOutput * DriveConstants.kMaxSpeedMetersPerSecond;
 
+            //factor in the velocity from the motion profile
             finalVelTheta = m_controller_theta.getSetpoint().velocity + vel_pid_theta;
 
         }
         return finalVelTheta;
     }
 
-    public static double calculateRotationToFieldPos(double heading, boolean useCameraMeasurement, double desiredRot,
+    /**
+     * @brief Given a heading and a desired rotation, calculate the velocity of the
+     *       theta controller
+     * @param heading    the current robot heading
+     * @param desiredRot the desired robot heading
+     * @param m_controller_theta
+     * @return the velocity, in rad/s to send to drive() (as if it came from a joystick)
+     */
+    public static double calculateRotationToFieldPos(double heading, double desiredRot,
             ProfiledPIDController m_controller_theta) {
 
         final double turnOutput;
-        if (useCameraMeasurement) {
-            turnOutput = m_controller_theta.calculate(heading,
-                    desiredRot);
-        } else {
-            turnOutput = m_controller_theta.calculate(heading);
-        }
-
+        turnOutput = m_controller_theta.calculate(heading, desiredRot);
+       
         double vel_pid_theta = turnOutput * DriveConstants.kMaxSpeedMetersPerSecond;
 
         double finalVelTheta = m_controller_theta.getSetpoint().velocity + vel_pid_theta;

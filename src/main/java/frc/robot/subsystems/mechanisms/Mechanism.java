@@ -1,4 +1,4 @@
-package frc.robot.mechanisms;
+package frc.robot.subsystems.mechanisms;
 
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -67,6 +67,7 @@ public abstract class Mechanism extends SubsystemBase{
             if((g != usedG)) { valueAdjusted = true; usedG = g; }
             if((v != usedV)) { valueAdjusted = true; usedV = v; }
             if(valueAdjusted){
+                System.out.println("Updating " + m_name + " PID and FF values on the fly!");
                 updatePIDGV(usedPID, g, v);
             }
        }

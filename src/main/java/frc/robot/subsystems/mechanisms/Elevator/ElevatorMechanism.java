@@ -1,6 +1,5 @@
-package frc.robot.mechanisms.Elevator;
+package frc.robot.subsystems.mechanisms.Elevator;
 
-import frc.robot.mechanisms.Mechanism;
 import frc.robot.utils.Types.Limits;
 import frc.robot.utils.Types.PidConstants;
 
@@ -9,7 +8,7 @@ import java.util.function.DoubleSupplier;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.FunctionalCommand;
-import frc.robot.Constants.ElevatorConstants;
+import frc.robot.subsystems.mechanisms.Mechanism;
 import frc.robot.utils.Types.FeedForwardConstants;
 
 public abstract class ElevatorMechanism extends Mechanism  {
@@ -20,8 +19,8 @@ public abstract class ElevatorMechanism extends Mechanism  {
     protected final int kLimitBuffer = 3;
     protected double m_targetPosition = 0;
 
-    public ElevatorMechanism(Limits limits, String name, PidConstants pid, FeedForwardConstants ff) {
-        super(name, pid, ff,  ElevatorConstants.kDiffThreshold, ElevatorConstants.kStaleThreshold, ElevatorConstants.kStaleTolerance);
+    public ElevatorMechanism(Limits limits, String name, PidConstants pid, FeedForwardConstants ff, double diffThreshold, int staleThreshold, double staleTolerance) {
+        super(name, pid, ff, diffThreshold, staleThreshold, staleTolerance);
         m_limits = limits;
 
         toggleShowPIDTuning(false); //set to true to enable PID tuning on dashboard
@@ -76,6 +75,26 @@ public abstract class ElevatorMechanism extends Mechanism  {
         return isFinished || delta < 3;
     }
 
+    /**
+     * Initialze the rotation of the elevator to a given position
+     * @param position target position in rotations
+     */
+    public void InitMotion(double position){
+        m_targetPosition = sanitizePositionSetpoint(position);
+        manualControl = false;
+        staleCounter = 0; //new target, reset stale counter
+        SmartDashboard.putNumber("Elevator m_setpoint" + m_name, m_targetPosition);
+    }    
+
+    protected double sanitizePositionSetpoint(double setpoint){
+        if (setpoint > m_limits.high){
+            setpoint = m_limits.high;
+        }
+        if(setpoint < m_limits.low){
+            setpoint = m_limits.low;
+        }
+        return setpoint;
+    }
 
     /******************************************************
      * Abstract Methods to be written by the specific motor elevator class
@@ -84,12 +103,10 @@ public abstract class ElevatorMechanism extends Mechanism  {
     public abstract double getElevatorPosition();
     protected abstract double getRotationsPerSecond();
     protected abstract void resetEncoder();
-
-
-    protected abstract void InitMotion(double position);
     protected abstract void RunElevator();
 
 
+  
     /*********************************************************
      * Commands
      *********************************************************/

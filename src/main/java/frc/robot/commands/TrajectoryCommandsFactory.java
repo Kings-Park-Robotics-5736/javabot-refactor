@@ -141,7 +141,7 @@ public class TrajectoryCommandsFactory {
             path.getGoalEndState().rotation());
 
             return (Commands.runOnce(()->System.out.println("Running PP Path FLY Find W/ Align to path " + pathName)) 
-                .andThen(new DriveToCoordinate(robotDrive, endPose.getX(), endPose.getY(), endPose.getRotation()))        
+                .andThen(new DriveToCoordinate(robotDrive, endPose))        
             
            
                     .andThen(Commands.runOnce(()->System.out.println("Done Running PP Path FLY Find W/ Align to path " + pathName)))).withName("PP On the fly" + pathName);

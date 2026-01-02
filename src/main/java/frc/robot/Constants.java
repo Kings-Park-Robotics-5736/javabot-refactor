@@ -12,6 +12,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import frc.robot.utils.Types.FeedForwardConstants;
 import frc.robot.utils.Types.Limits;
+import frc.robot.utils.Types.MotionProfileConstants;
 import frc.robot.utils.Types.PidConstants;
 
 /**
@@ -109,7 +110,6 @@ public final class Constants {
 
   public static final class ElevatorConstants{
     public static final String kCanName = "Canivore";
-    public static final double kMaxJerk = 0;
     public static final byte kLeaderDeviceId = 22;
     public static final byte kFollowerDeviceId = 23;
     ;
@@ -118,8 +118,11 @@ public final class Constants {
     public static final Limits kLimits = new Limits(0, 24.1);
     public static final FeedForwardConstants kFFValues = new FeedForwardConstants(.015, .12391, 0, .24024);
 
-    public static final int kMaxVelocity = 100;
-    public static final int kMaxAcceleration = 100;
+    public static final MotionProfileConstants kMotionProfileConstants = new MotionProfileConstants(
+        (double) 100,
+        (double) 100,
+        (double) 0,
+        1);
 
     public static final double kStaleTolerance = .35;
     public static final double kDiffThreshold = 0.10;
@@ -148,15 +151,18 @@ public final class Constants {
     public static final byte kMotorID = 21;
 
     public static final String kCanName = "rio";
+    public static final MotionProfileConstants kMotionProfileConstants = new MotionProfileConstants(
+        (double) 2 * Math.PI, //max velocity is 90 deg / sec
+        (double) 4 * Math.PI, 
+        (double) 20 * Math.PI,
+        1);
 
-    public static final double kMaxVelocity = (double) 2 *  Math.PI; //max velocity is 90 deg / sec
-    public static final double kMaxAcceleration = (double) 4* Math.PI; 
-    public static final double kMaxJerk = (double) 20 * Math.PI;
     public static final PidConstants kPidValues = new PidConstants(15, 0, 0);
     
     public static final FeedForwardConstants kFFValues = new FeedForwardConstants(0.06, 1.2666, 0, .19);
 
     public static final double kAbsoluteOffset = (1-0.85);
+    public static final double kSensorToMechanismRatio = 72.73;
    
     public static final double kPositionTolerance = Math.toRadians(1.0);
     public static final double kStaleTolerance = Math.toRadians(3);
@@ -263,10 +269,10 @@ public final class Constants {
     public static final int CANdleID = 20;
     public static final int PWMLedId = 0;
     public static final int LED_Count = 150;
-    public static final int[] redRGB = {255,0,0};
-    public static final int[] GreenRGB = {0,255,0};
-     public static final int[] BlueRGB = {0,0,255};
-     public static final int[] PurpleRGB = {255,0,255};
+   
 
   }
+
+
+  
 }

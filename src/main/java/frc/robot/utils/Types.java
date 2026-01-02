@@ -45,11 +45,25 @@ public final class Types {
     }
   }
 
+  public static final class MotionProfileConstants{
+    public final double kMaxVelocity; //max velocity is 90 deg / sec
+    public final double kMaxAcceleration; 
+    public final double kMaxJerk;
+    public final double maxError;
+
+    public MotionProfileConstants(double maxVel, double maxAccel, double maxJerk, double maxError){
+      this.kMaxVelocity = maxVel;
+      this.kMaxAcceleration = maxAccel;
+      this.kMaxJerk = maxJerk;
+      this.maxError = maxError;
+    }
+  }
+
 
   public enum LEDState{
     IN_RANGE,
-    HAVE_NOTE,
-    NO_NOTE,
+    HAVE_PIECE,
+    NO_PIECE,
     NONE,
     SEE_TAG,
 }
@@ -77,9 +91,6 @@ public final class Types {
     ELEVATOR
   }
 
-  public enum GoalType{
-    SPEAKER,
-    AMP
-}
+
 
 }
