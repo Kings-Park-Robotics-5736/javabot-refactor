@@ -25,7 +25,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.IOConstants;
 import frc.robot.commands.drive.DriveDistanceCommand;
-import frc.robot.subsystems.LEDSubsystem;
+import frc.robot.subsystems.LEDSubsystemP6;
 import frc.robot.subsystems.LimelightVisionSubsystem;
 import frc.robot.subsystems.phoenixDrive.DriveSubsystem;
 import frc.robot.subsystems.phoenixDrive.TunerConstants;
@@ -59,7 +59,7 @@ public class RobotContainer {
         XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
         XboxController m_actionController = new XboxController(IOConstants.kActionControllerPort);
 
-        public LEDSubsystem m_ledSystem = new LEDSubsystem();
+        public LEDSubsystemP6 m_ledSystem = new LEDSubsystemP6();
 
         private final DriveSubsystem m_robotDrive = TunerConstants.createDrivetrain();
 
