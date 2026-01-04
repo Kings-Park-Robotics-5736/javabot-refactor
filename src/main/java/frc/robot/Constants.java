@@ -4,11 +4,14 @@
 
 package frc.robot;
 
-import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import frc.robot.utils.Types.FeedForwardConstants;
 import frc.robot.utils.Types.Limits;
@@ -242,6 +245,12 @@ public final class Constants {
         new PIDConstants(5.0, 0, 0), // Translation constants
         new PIDConstants(5.5, 0, 0) // Rotation constants
     );
+  }
+
+  public static final class VisionConstants {
+    public static final Vector<N3> MT1_STDEVS_STATIONARY = VecBuilder.fill(0.5, 0.5, 1.0);
+    public static final Vector<N3> MT1_STDEVS = VecBuilder.fill(0.5, 0.5, 9999999);
+    public static final Vector<N3> MT2_STDEVS = VecBuilder.fill(0.7, 0.7, 9999999);
   }
 
   public static final class CenterToFieldPositionConstants {

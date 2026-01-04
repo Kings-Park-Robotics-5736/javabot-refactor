@@ -187,7 +187,7 @@ public class ArmMechanismSparkMax extends ArmMechanism {
         .i(pid.i)
         .d(pid.d);
         m_leaderMotorConfig.closedLoop.feedForward.kV(v);
-        m_leaderMotorConfig.closedLoop.feedForward.kG(g);
+        m_leaderMotorConfig.closedLoop.feedForward.kCos(g);
         SparkMaxUtils.ApplySparkMaxConfig(m_leader, m_leaderMotorConfig);
     }
 

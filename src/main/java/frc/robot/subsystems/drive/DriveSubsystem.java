@@ -8,16 +8,13 @@ import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Volts;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.RobotConfig;
-import com.pathplanner.lib.util.FlippingUtil;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -27,28 +24,21 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.TimestampedDoubleArray;
 import edu.wpi.first.units.measure.MutDistance;
 import edu.wpi.first.units.measure.MutLinearVelocity;
 import edu.wpi.first.units.measure.MutVoltage;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.FieldObject2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.DriveConstants;
-import frc.robot.utils.MathUtils;
-import frc.robot.vision.Limelight;
-import frc.robot.field.ScoringPositions;
-import frc.robot.utils.LimelightHelpers;
 import frc.robot.utils.LimelightHelpers.PoseEstimate;
+import frc.robot.vision.Limelight;
 
 public class DriveSubsystem extends SubsystemBase {
 
@@ -236,7 +226,6 @@ public class DriveSubsystem extends SubsystemBase {
     } catch (Exception e) {
       // Handle exception as needed
       e.printStackTrace();
-      pathPlannerInitSuccess = false;
     }
 
    
@@ -527,12 +516,15 @@ private void addLimelightVisionMeasurement(Limelight ll, boolean primary) {
     SmartDashboard.putNumber("rotation speed", rot);
     if ((joystick && !m_joystickLockoutTranslate) || !joystick) {
 
+      //if this is joystick input, and currently the rotate is locked out to the user, apply the lockout value while using user joystick movement.
       if (m_joystickLockoutRotate && joystick) {
         rot = m_rotateLockoutValue;
         m_transXLockoutValue = xSpeed;
         m_transYLockoutValue = ySpeed;
         fieldRelative = m_joystickLockoutRotateFieldOriented;
       } else if (m_joystickLockoutRotate && !joystick && !m_joystickLockoutTranslate) {
+        //if this is NOT joystick input (autodrive), but rotate is locked out and not translate, apply the lockout value for rotation
+        //if the translation joystick was not locked out, then use the last known user translation value.
         xSpeed = m_transXLockoutValue;
         ySpeed = m_transYLockoutValue;
       }

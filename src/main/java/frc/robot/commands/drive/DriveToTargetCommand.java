@@ -4,13 +4,14 @@ import java.util.function.DoubleSupplier;
 
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.DriveToTargetCommandConstants;
 
-import frc.robot.subsystems.drive.DriveSubsystem;
+import frc.robot.subsystems.phoenixDrive.DriveSubsystem;
 import frc.robot.vision.PiCamera;
 
 /**
@@ -76,10 +77,10 @@ public class DriveToTargetCommand extends Command {
         System.out.println("Start " + m_startingPosition.getX() + " ,  " + m_startingPosition.getY() + ", " + m_startingPosition.getRotation().getRadians());
         
         //configure motion controller
-        m_controller_theta.reset(m_drive.getHeadingInRadians());
+        m_controller_theta.reset(m_drive.getPose().getRotation().getRadians());
         m_controller_theta.setTolerance(0.01);
 
-        var startingSpeeds = m_drive.getRobotRelativeSpeeds();
+        ChassisSpeeds  startingSpeeds = m_drive.getState().Speeds;
         m_startingV = Math.sqrt(startingSpeeds.vxMetersPerSecond *  startingSpeeds.vxMetersPerSecond + 
         startingSpeeds.vyMetersPerSecond *  startingSpeeds.vyMetersPerSecond);
     }

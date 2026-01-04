@@ -14,7 +14,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.commands.TrajectoryCommandsFactory;
-import frc.robot.subsystems.drive.DriveSubsystem;
+import frc.robot.subsystems.phoenixDrive.DriveSubsystem;
 
 /**
  * @brief this is a wrapper around the path planning lib to allow us to go to a

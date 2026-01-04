@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
@@ -19,18 +20,21 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.IOConstants;
 import frc.robot.commands.drive.DriveDistanceCommand;
 import frc.robot.subsystems.LEDSubsystem;
-import frc.robot.subsystems.drive.DriveSubsystem;
+import frc.robot.subsystems.LimelightVisionSubsystem;
+import frc.robot.subsystems.phoenixDrive.DriveSubsystem;
+import frc.robot.subsystems.phoenixDrive.TunerConstants;
 import frc.robot.utils.Types.LEDState;
+import frc.robot.utils.Types.RobotMode;
 import frc.robot.utils.Types.SysidMechanism;
 import frc.robot.vision.Limelight;
 import frc.robot.vision.Limelight.LEDMode;
 import frc.robot.vision.PiCamera;
-
 
 
 /*
@@ -41,32 +45,37 @@ import frc.robot.vision.PiCamera;
  */
 public class RobotContainer {
 
-        // The robot's subsystems 
+
+        public RobotMode m_currentMode = RobotMode.DISABLED;
+        private final Telemetry logger = new Telemetry(DriveConstants.kMaxSpeedMetersPerSecond);
+        // The robot's subsystems
         private final SysidMechanism enabledSysid = SysidMechanism.NONE;
 
         private final PiCamera m_picam = new PiCamera();
-        public Limelight m_limelight = new Limelight("limelight-chute");
-        public Limelight m_limelight_side = new Limelight("limelight-climb");
-        public Limelight m_limelight_three = new Limelight("limelight-elevate");
+        public Limelight m_limelight = new Limelight("limelight-chute", false);
+        public Limelight m_limelight_side = new Limelight("limelight-climb", false);
+        public Limelight m_limelight_three = new Limelight("limelight-elevate", false);
 
         XboxController m_driverController = new XboxController(IOConstants.kDriverControllerPort);
         XboxController m_actionController = new XboxController(IOConstants.kActionControllerPort);
 
-   
         public LEDSubsystem m_ledSystem = new LEDSubsystem();
 
-        private final DriveSubsystem m_robotDrive = new DriveSubsystem(m_limelight, m_limelight_side,m_limelight_three);
+        private final DriveSubsystem m_robotDrive = TunerConstants.createDrivetrain();
+
+        public LimelightVisionSubsystem m_visionSubsystem= new LimelightVisionSubsystem( m_robotDrive, m_limelight, m_limelight_side,
+                        m_limelight_three);
 
 
         private final PowerDistribution PDH = new PowerDistribution(1, ModuleType.kRev);
         private final SendableChooser<Command> autoChooser;
 
-        private final SlewRateLimiter m_xspeedLimiter = new SlewRateLimiter(DriveConstants.kMaxAccelerationMetersPerSecondSquared);
-        private final SlewRateLimiter m_yspeedLimiter = new SlewRateLimiter(DriveConstants.kMaxAccelerationMetersPerSecondSquared);
-        private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(DriveConstants.kMaxAccelerationMetersPerSecondSquared);
-
-        private Boolean m_isAuto = false;
-
+        private final SlewRateLimiter m_xspeedLimiter = new SlewRateLimiter(
+                        DriveConstants.kMaxAccelerationMetersPerSecondSquared);
+        private final SlewRateLimiter m_yspeedLimiter = new SlewRateLimiter(
+                        DriveConstants.kMaxAccelerationMetersPerSecondSquared);
+        private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(
+                        DriveConstants.kMaxAccelerationMetersPerSecondSquared);
 
 
         private void driveWithJoystick(Boolean fieldRelative) {
@@ -77,14 +86,14 @@ public class RobotContainer {
                 var leftX = m_driverController.getLeftX();
                 var rightX = m_driverController.getRightX();
 
-                if(m_driverController.getLeftStickButton()){
-                       leftY /=2; 
-                       leftX /=2;
-                       System.out.println("Speed Limiting");
+                if (m_driverController.getLeftStickButton()) {
+                        leftY /= 2;
+                        leftX /= 2;
+                        System.out.println("Speed Limiting");
                 }
 
-                if(m_driverController.getRightStickButton()){
-                        rightX /=2;
+                if (m_driverController.getRightStickButton()) {
+                        rightX /= 2;
                 }
                 var xSpeed = -m_xspeedLimiter
                                 .calculate(MathUtil.applyDeadband(leftY, 0.08))
@@ -110,14 +119,16 @@ public class RobotContainer {
                 final var rot = -m_rotLimiter.calculate(MathUtil.applyDeadband(rightX, 0.1))
                                 * DriveConstants.kMaxRotationSpeedMetersPerSecond;
 
-                if (rot != 0){
+                if (rot != 0) {
                         SmartDashboard.putBoolean("Square to Target?", false);
                 }
-               /* if(m_driverController.getLeftTriggerAxis()>0){
-                        fieldRelative = false;
-                          xSpeed = -xSpeed;
-                        ySpeed = -ySpeed;
-                }*/
+                /*
+                 * if(m_driverController.getLeftTriggerAxis()>0){
+                 * fieldRelative = false;
+                 * xSpeed = -xSpeed;
+                 * ySpeed = -ySpeed;
+                 * }
+                 */
                 m_robotDrive.drive(xSpeed, ySpeed, rot, fieldRelative, true);
         }
 
@@ -125,16 +136,17 @@ public class RobotContainer {
                 NamedCommands.registerCommand("Forward1", new DriveDistanceCommand(m_robotDrive, 1));
                 NamedCommands.registerCommand("Forward0.5", new DriveDistanceCommand(m_robotDrive, 0.5));
                 NamedCommands.registerCommand("ForceStop", Commands.runOnce(() -> m_robotDrive.forceStop()));
-          }
+        }
 
         /**
          * The container for the robot. Contains subsystems, OI devices, and commands.
          */
         public RobotContainer() {
 
-                InitializeNamedCommands(); // must do this first
-
                 
+
+
+                InitializeNamedCommands(); // must do this first
 
                 // Configure the button bindings
                 switch (enabledSysid) {
@@ -175,18 +187,22 @@ public class RobotContainer {
                 // Set limelight LED to follow pipeline on startup
                 m_limelight.setLEDMode(LEDMode.PIPELINE);
 
-               // LimelightHelpers.setStreamMode_PiPSecondary("limelight-chute");
-                
+                // LimelightHelpers.setStreamMode_PiPSecondary("limelight-chute");
 
-                if(m_robotDrive.getPathPlannerInitSuccess()){
+                if (m_robotDrive.getPathPlannerInitSuccess()) {
                         autoChooser = AutoBuilder.buildAutoChooser(); // Default auto will be `Commands.none()`
                         SmartDashboard.putData("Auto Mode", autoChooser);
-                }else {
+                } else {
                         autoChooser = null;
                 }
 
-       
-                
+                final var idle = new SwerveRequest.Idle();
+                RobotModeTriggers.disabled().whileTrue(
+                        m_robotDrive.applyRequest(() -> idle).ignoringDisable(true)
+                );
+
+                m_robotDrive.registerTelemetry(logger::telemeterize);
+
         }
 
         private void configureButtonBindingsDriveSysID() {
@@ -199,62 +215,68 @@ public class RobotContainer {
                 new JoystickButton(m_driverController, XboxController.Button.kY.value)
                                 .whileTrue(m_robotDrive.sysIdDynamic(SysIdRoutine.Direction.kReverse));
                 m_robotDrive.setDefaultCommand(
-                // The left stick controls translation of the robot.
-                // Turning is controlled by the X axis of the right stick.
-                new RunCommand(
-                                () -> driveWithJoystick(true),
-                                m_robotDrive));
+                                // The left stick controls translation of the robot.
+                                // Turning is controlled by the X axis of the right stick.
+                                new RunCommand(
+                                                () -> driveWithJoystick(true),
+                                                m_robotDrive));
         }
-    
-
 
         private void configButtonBindingsArmSysID() {
-               /*  new JoystickButton(m_driverController, XboxController.Button.kA.value)
-                                .whileTrue(m_elevate.sysIdArmQuasistatic(SysIdRoutine.Direction.kForward));
-                new JoystickButton(m_driverController, XboxController.Button.kB.value)
-                                .whileTrue(m_elevate.sysIdArmQuasistatic(SysIdRoutine.Direction.kReverse));
-                new JoystickButton(m_driverController, XboxController.Button.kX.value)
-                                .whileTrue(m_elevate.sysIdArmDynamic(SysIdRoutine.Direction.kForward));
-                new JoystickButton(m_driverController, XboxController.Button.kY.value)
-                                .whileTrue(m_elevate.sysIdArmDynamic(SysIdRoutine.Direction.kReverse));
-
-                new JoystickButton(m_driverController, XboxController.Button.kLeftBumper.value)
-                                .whileTrue(m_elevate.RunArmToPositionCommand(Math.toRadians(120)));
-
-                new JoystickButton(m_driverController, XboxController.Button.kRightBumper.value)
-                                .whileTrue(m_elevate.RunArmToPositionCommand(Math.toRadians(-25))); */
-
+                /*
+                 * new JoystickButton(m_driverController, XboxController.Button.kA.value)
+                 * .whileTrue(m_elevate.sysIdArmQuasistatic(SysIdRoutine.Direction.kForward));
+                 * new JoystickButton(m_driverController, XboxController.Button.kB.value)
+                 * .whileTrue(m_elevate.sysIdArmQuasistatic(SysIdRoutine.Direction.kReverse));
+                 * new JoystickButton(m_driverController, XboxController.Button.kX.value)
+                 * .whileTrue(m_elevate.sysIdArmDynamic(SysIdRoutine.Direction.kForward));
+                 * new JoystickButton(m_driverController, XboxController.Button.kY.value)
+                 * .whileTrue(m_elevate.sysIdArmDynamic(SysIdRoutine.Direction.kReverse));
+                 * 
+                 * new JoystickButton(m_driverController,
+                 * XboxController.Button.kLeftBumper.value)
+                 * .whileTrue(m_elevate.RunArmToPositionCommand(Math.toRadians(120)));
+                 * 
+                 * new JoystickButton(m_driverController,
+                 * XboxController.Button.kRightBumper.value)
+                 * .whileTrue(m_elevate.RunArmToPositionCommand(Math.toRadians(-25)));
+                 */
 
         }
 
         private void configButtonBindingsElevatorSysID() {
-             /*    new JoystickButton(m_driverController, XboxController.Button.kA.value)
-                                .whileTrue(m_elevate.sysIdElevatorQuasistatic(SysIdRoutine.Direction.kForward));
-                new JoystickButton(m_driverController, XboxController.Button.kB.value)
-                                .whileTrue(m_elevate.sysIdElevatorQuasistatic(SysIdRoutine.Direction.kReverse));
-                new JoystickButton(m_driverController, XboxController.Button.kX.value)
-                                .whileTrue(m_elevate.sysIdElevatorDynamic(SysIdRoutine.Direction.kForward));
-                new JoystickButton(m_driverController, XboxController.Button.kY.value)
-                                .whileTrue(m_elevate.sysIdElevatorDynamic(SysIdRoutine.Direction.kReverse));
-
-                new JoystickButton(m_driverController, XboxController.Button.kLeftBumper.value)
-                                .whileTrue(m_elevate.RunElevatorToPositionCommand(10));
-
-                new JoystickButton(m_driverController, XboxController.Button.kRightBumper.value)
-                                .whileTrue(m_elevate.RunElevatorToPositionCommand(24.5));
-
-                 new Trigger(() -> {
-                        return m_driverController.getRightTriggerAxis() > 0;
-                }).whileTrue(m_elevate.RunElevatorManualSpeedCommand(() -> m_driverController.getRightTriggerAxis()));
-
-
-                new Trigger(() -> {
-                        return m_driverController.getLeftTriggerAxis() > 0;
-                }).whileTrue(m_elevate.RunElevatorManualSpeedCommand(() -> -m_driverController.getLeftTriggerAxis())); */
+                /*
+                 * new JoystickButton(m_driverController, XboxController.Button.kA.value)
+                 * .whileTrue(m_elevate.sysIdElevatorQuasistatic(SysIdRoutine.Direction.kForward
+                 * ));
+                 * new JoystickButton(m_driverController, XboxController.Button.kB.value)
+                 * .whileTrue(m_elevate.sysIdElevatorQuasistatic(SysIdRoutine.Direction.kReverse
+                 * ));
+                 * new JoystickButton(m_driverController, XboxController.Button.kX.value)
+                 * .whileTrue(m_elevate.sysIdElevatorDynamic(SysIdRoutine.Direction.kForward));
+                 * new JoystickButton(m_driverController, XboxController.Button.kY.value)
+                 * .whileTrue(m_elevate.sysIdElevatorDynamic(SysIdRoutine.Direction.kReverse));
+                 * 
+                 * new JoystickButton(m_driverController,
+                 * XboxController.Button.kLeftBumper.value)
+                 * .whileTrue(m_elevate.RunElevatorToPositionCommand(10));
+                 * 
+                 * new JoystickButton(m_driverController,
+                 * XboxController.Button.kRightBumper.value)
+                 * .whileTrue(m_elevate.RunElevatorToPositionCommand(24.5));
+                 * 
+                 * new Trigger(() -> {
+                 * return m_driverController.getRightTriggerAxis() > 0;
+                 * }).whileTrue(m_elevate.RunElevatorManualSpeedCommand(() ->
+                 * m_driverController.getRightTriggerAxis()));
+                 * 
+                 * 
+                 * new Trigger(() -> {
+                 * return m_driverController.getLeftTriggerAxis() > 0;
+                 * }).whileTrue(m_elevate.RunElevatorManualSpeedCommand(() ->
+                 * -m_driverController.getLeftTriggerAxis()));
+                 */
         }
-        
-
-       
 
         /**
          * Use this method to define your button->command mappings. Buttons can be
@@ -266,13 +288,11 @@ public class RobotContainer {
          * {@link JoystickButton}.
          */
         private void configureButtonBindings() {
-                
+
                 m_ledSystem.SetLEDState(LEDState.IN_RANGE);
 
-
-            
-
-                SmartDashboard.putData("Reset Odometry", (Commands.runOnce(() -> m_robotDrive.zeroHeading(), m_robotDrive)));
+                SmartDashboard.putData("Reset Odometry",
+                                (m_robotDrive.runOnce(() -> m_robotDrive.seedFieldCentric())));
         }
 
         /**
@@ -281,20 +301,28 @@ public class RobotContainer {
          * @return the command to run in autonomous
          */
 
-       public Command getAutonomousCommand() {
-              if (autoChooser != null) {
-                SmartDashboard.putString("Auto Running", autoChooser.getSelected().getName());
-                return autoChooser.getSelected();
-              } else{
-                return Commands.runOnce(() -> m_robotDrive.forceStop());
-              }
+        public Command getAutonomousCommand() {
+                if (autoChooser != null) {
+                        SmartDashboard.putString("Auto Running", autoChooser.getSelected().getName());
+                        return autoChooser.getSelected();
+                } else {
+                        return Commands.runOnce(() -> m_robotDrive.forceStop());
+                }
         }
 
         public void publishAuto() {
         }
 
-        public void setIsAutonomous(boolean isAuto){
-                m_isAuto = isAuto;
+        public void updateRobotMode(RobotMode mode) {
+
+                m_currentMode = mode;
+                if (mode == RobotMode.DISABLED) {
+                        m_visionSubsystem.SetRobotDisabled(true);
+                } else{
+                        m_visionSubsystem.SetRobotDisabled(false);
+                }
         }
+
+    
 
 }

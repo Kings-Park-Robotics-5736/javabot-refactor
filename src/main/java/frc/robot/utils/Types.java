@@ -91,6 +91,14 @@ public final class Types {
     ELEVATOR
   }
 
+  
+  public enum RobotMode {
+    DISABLED,
+    AUTON,
+    TELEOP,
+    TEST
+}
+
 
 
 }

@@ -4,7 +4,7 @@ package frc.robot.commands.drive;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import frc.robot.Constants.CenterToFieldPositionConstants;
-import frc.robot.subsystems.drive.DriveSubsystem;
+import frc.robot.subsystems.phoenixDrive.DriveSubsystem;
 
 
 

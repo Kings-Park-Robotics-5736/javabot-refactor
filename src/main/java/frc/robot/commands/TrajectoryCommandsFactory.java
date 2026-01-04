@@ -23,8 +23,7 @@ import edu.wpi.first.wpilibj2.command.SelectCommand;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.commands.drive.DriveToCoordinate;
 import frc.robot.commands.drive.PathPlanFromDynamicStartCommand;
-import frc.robot.field.ScoringPositions;
-import frc.robot.subsystems.drive.DriveSubsystem;
+import frc.robot.subsystems.phoenixDrive.DriveSubsystem;
 import frc.robot.utils.MathUtils;
 
 public class TrajectoryCommandsFactory {

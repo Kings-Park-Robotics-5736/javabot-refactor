@@ -3,11 +3,6 @@ package frc.robot.vision;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.DoubleArraySubscriber;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableEntry;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.TimestampedDoubleArray;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 
@@ -17,27 +12,15 @@ import frc.robot.utils.LimelightHelpers;
  * Limelight camera class
  */
 public class Limelight {
-    private NetworkTable table;
     private String name;
-    private NetworkTableEntry tx;
-    private NetworkTableEntry ty;
-    private NetworkTableEntry tv;
-    private NetworkTableEntry ta;
-    private NetworkTableEntry tid;
-    private NetworkTableEntry botpose;
-    private NetworkTableEntry botpose_wpiblue;
-    private NetworkTableEntry botpose_wpired;
-    private NetworkTableEntry camerapose_targetspace;
-    private NetworkTableEntry targetpose_cameraspace;
-    private NetworkTableEntry targetpose_robotspace;
-    private NetworkTableEntry botpose_targetspace;
-    private NetworkTableEntry camerapose_robotspace;
-    private NetworkTableEntry camMode;
-    private NetworkTableEntry ledMode;
-    private NetworkTableEntry pipeline;
-    private NetworkTableEntry actualPipeline;
-    private final DoubleArraySubscriber botPoseBlueSubscriber;
-    private final DoubleArraySubscriber botPoseRedSubscriber;
+    private Boolean m_supportsIMU;
+
+    public enum MegaTagMode {
+        MEGATAG1,
+        MEGATAG2
+    }
+
+    private MegaTagMode megaTagMode = MegaTagMode.MEGATAG1;
 
 
     public enum LEDMode {
@@ -68,30 +51,21 @@ public class Limelight {
      * Camera sends data to network table, get table and values when creating
      * instance of Limelight
      */
-    public Limelight(String tableName) {
-        table = NetworkTableInstance.getDefault().getTable(tableName);
+    public Limelight(String tableName, Boolean supportsIMU) {
         name = tableName;
-        tx = table.getEntry("tx"); // horizontal offset (-29.8 - 29.8 degrees)
-        ty = table.getEntry("ty"); // vertical offset (-24.85 - 24.85 degrees)
-        tv = table.getEntry("tv"); // valid target (0 - 1)
-        ta = table.getEntry("ta"); // target area (0% - 100% of image)
-        tid = table.getEntry("tid"); // ID of primary in-view AprilTag
-        botpose = table.getEntry("botpose"); // Robot transform in field-space
-        botpose_wpiblue = table.getEntry("botpose_wpiblue");
-        botpose_wpired = table.getEntry("botpose_wpired");
-        camerapose_targetspace = table.getEntry("camerapose_targetspace");
-        targetpose_cameraspace = table.getEntry("targetpose_cameraspace");
-        targetpose_robotspace = table.getEntry("targetpose_robotspace");
-        botpose_targetspace = table.getEntry("botpose_targetspace");
-        camerapose_robotspace = table.getEntry("camerapose_robotspace");
-        ledMode = table.getEntry("ledMode"); // LED state (0-3)
-        camMode = table.getEntry("camMode"); // operation mode (0-1)
-        pipeline = table.getEntry("pipeline");
-        actualPipeline = table.getEntry("getpipe");
-        double[] emptyArray = {0,0,0,0,0,0,0};
-        botPoseBlueSubscriber = table.getDoubleArrayTopic("botpose_wpiblue").subscribe(emptyArray);
-        botPoseRedSubscriber = table.getDoubleArrayTopic("botpose_wpired").subscribe(emptyArray);
+        m_supportsIMU = supportsIMU;
+    }
 
+    public String getName(){
+        return name;
+    }
+
+    public MegaTagMode GetMegatagMode(){
+        return megaTagMode;
+    }
+
+    public void SetMegatagMode(MegaTagMode mode){
+        megaTagMode = mode;
     }
 
     public void SetRobotOrientation(double degrees){
@@ -108,19 +82,23 @@ public class Limelight {
         return  LimelightHelpers.getBotPoseEstimate_wpiBlue(name);
     }
     
+
+    public LimelightHelpers.PoseEstimate GetMegatagPoseEstimate(){
+        if(megaTagMode == MegaTagMode.MEGATAG2){
+            return GetBotPoseMT2();
+        }else{
+            return GetBotPoseMT1();
+        }
+    }
     
   
-
-
-
-    /**
-     * Get current LED mode
-     * 
-     * @return int (0-4)
-     */
-    public int getLEDMode() {
-        return ledMode.getNumber(0).intValue();
+    public void SetIMUMode(int mode){
+        if(m_supportsIMU){
+            LimelightHelpers.SetIMUMode(name, mode);
+        }
     }
+
+
 
     /**
      * Set LED mode
@@ -128,14 +106,27 @@ public class Limelight {
      * @param mode LEDMode(0-4)
      */
     public void setLEDMode(LEDMode mode) {
-        ledMode.setNumber(mode.value);
+        switch (mode) {
+            case PIPELINE:
+                LimelightHelpers.setLEDMode_PipelineControl(name);
+                break;
+            case OFF:
+                LimelightHelpers.setLEDMode_ForceOff(name);
+                break;
+            case BLINK:
+                LimelightHelpers.setLEDMode_ForceBlink(name);
+                break;
+            case ON:
+                LimelightHelpers.setLEDMode_ForceOn(name);
+                break;
+        }
     }
 
     /**
      * Set LED mode to ON
      */
     public void setLEDOn() {
-        ledMode.setNumber(LEDMode.ON.value);
+        LimelightHelpers.setLEDMode_ForceOn(name);
     }
 
     public Command TurnOnLEDsFor3Sec(){
@@ -146,23 +137,14 @@ public class Limelight {
      * Set LED mode to OFF
      */
     public void setLEDOff() {
-        ledMode.setNumber(LEDMode.OFF.value);
+        LimelightHelpers.setLEDMode_ForceOff(name);
     }
 
     /**
      * Set LED mode to BLINK
      */
     public void setLEDBlink() {
-        ledMode.setNumber(LEDMode.BLINK.value);
-    }
-
-    /**
-     * Get current camera mode
-     * 
-     * @return int (0-1)
-     */
-    public int getCamMode() {
-        return camMode.getNumber(0).intValue();
+        LimelightHelpers.setLEDMode_ForceBlink(name);
     }
 
     /**
@@ -171,7 +153,9 @@ public class Limelight {
      * @param mode CamMode(0-1)
      */
     public void setCamMode(CamMode mode) {
-        camMode.setNumber(mode.value);
+        // LimelightHelpers doesn't have a direct camera mode setter
+        // Using NetworkTables directly for this functionality
+        LimelightHelpers.getLimelightNTTable(name).getEntry("camMode").setNumber(mode.value);
     }
 
     public void SetFiducialIDFiltersOverride( int[] validIDs){
@@ -195,7 +179,7 @@ public class Limelight {
     }
 
     public int getActualPipeline() {
-        return (int) actualPipeline.getInteger(-1);
+        return (int) LimelightHelpers.getCurrentPipelineIndex(name);
     }
 
     public boolean getIsPipelineReflective() {
@@ -207,7 +191,7 @@ public class Limelight {
     }
 
     public void setPipeline(int pipleline) {
-        pipeline.setNumber(pipleline);
+        LimelightHelpers.setPipelineIndex(name, pipleline);
     }
 
     public void setAprilTagPipeline() {
@@ -224,11 +208,11 @@ public class Limelight {
      * @return -29.8 - 29.8 degrees
      */
     public double getTargetOffsetX() {
-        return tx.getDouble(0.0);
+        return LimelightHelpers.getTX(name);
     }
 
     public long getLastOffsetXChange() {
-        return tx.getLastChange();
+        return LimelightHelpers.getLimelightNTTable(name).getEntry("tx").getLastChange();
     }
 
     /**
@@ -237,7 +221,7 @@ public class Limelight {
      * @return -24.85 - 24.85 degrees
      */
     public double getTargetOffsetY() {
-        return ty.getDouble(0.0);
+        return LimelightHelpers.getTY(name);
     }
 
     /**
@@ -246,11 +230,7 @@ public class Limelight {
      * @return boolean - true if target is found else false
      */
     public boolean checkValidTarget() {
-        if (tv.getNumber(0).intValue() == 1) {
-            return true;
-        } else {
-            return false;
-        }
+        return LimelightHelpers.getTV(name);
     }
 
     /**
@@ -259,7 +239,7 @@ public class Limelight {
      * @return 0% - 100% of image
      */
     public double getTargetArea() {
-        return ta.getDouble(0.0);
+        return LimelightHelpers.getTA(name);
     }
 
     /**
@@ -268,7 +248,7 @@ public class Limelight {
      * @return double
      */
     public double getTargetID() {
-        return tid.getDouble(0.0);
+        return LimelightHelpers.getFiducialID(name);
     }
 
     public String poseToString(double[] pose) {
@@ -289,7 +269,7 @@ public class Limelight {
      * @return double[]
      */
     public double[] getBotPose() {
-        return botpose.getDoubleArray(new double[6]);
+        return LimelightHelpers.getBotPose(name);
     }
 
     /**
@@ -297,8 +277,8 @@ public class Limelight {
      * 
      * @return double[]
      */
-    public TimestampedDoubleArray getBotPoseBlue() {
-        return botPoseBlueSubscriber.getAtomic();
+    public double[] getBotPoseBlue() {
+        return LimelightHelpers.getBotPose_wpiBlue(name);
     }
 
     /**
@@ -306,8 +286,8 @@ public class Limelight {
      * 
      * @return double[]
      */
-    public TimestampedDoubleArray getBotPoseRed() {
-        return botPoseRedSubscriber.getAtomic();
+    public double[] getBotPoseRed() {
+        return LimelightHelpers.getBotPose_wpiRed(name);
     }
 
     /**
@@ -317,7 +297,7 @@ public class Limelight {
      * @return double[]
      */
     public double[] getCameraPoseTargetSpace() {
-        return camerapose_targetspace.getDoubleArray(new double[6]);
+        return LimelightHelpers.getCameraPose_TargetSpace(name);
     }
 
     /**
@@ -326,7 +306,7 @@ public class Limelight {
      * @return double[]
      */
     public double[] getTargetPoseCameraSpace() {
-        return targetpose_cameraspace.getDoubleArray(new double[6]);
+        return LimelightHelpers.getTargetPose_CameraSpace(name);
     }
 
     /**
@@ -335,7 +315,7 @@ public class Limelight {
      * @return double[]
      */
     public double[] getTargetPoseBotSpace() {
-        return targetpose_robotspace.getDoubleArray(new double[6]);
+        return LimelightHelpers.getTargetPose_RobotSpace(name);
     }
 
     /**
@@ -344,17 +324,9 @@ public class Limelight {
      * @return double[]
      */
     public double[] getBotPoseTargetSpace() {
-        return botpose_targetspace.getDoubleArray(new double[6]);
+        return LimelightHelpers.getBotPose_TargetSpace(name);
     }
 
-    /**
-     * Get camera 3D transform in the coordinate system of the robot
-     * 
-     * @return double[]
-     */
-    public double[] getCameraPoseBotSpace() {
-        return camerapose_robotspace.getDoubleArray(new double[6]);
-    }
 
     /**
      * Get distance to AprilTag
@@ -384,7 +356,9 @@ public class Limelight {
      * Command - toggle limelight LED ON/OFF
      */
     public void toggleLED() {
-        if (this.getLEDMode() == LEDMode.ON.value) {
+        // Get current LED mode from NetworkTables since LimelightHelpers doesn't have a getter
+        double currentMode = LimelightHelpers.getLimelightNTDouble(name, "ledMode");
+        if (currentMode == LEDMode.ON.value) {
             this.setLEDOff();
         } else {
             this.setLEDOn();

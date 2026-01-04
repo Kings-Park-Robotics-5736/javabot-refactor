@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.utils.Types.RobotMode;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.commands.PathfindingCommand;
@@ -78,7 +79,7 @@ public class Robot extends TimedRobot {
   /** This function is called once each time the robot enters Disabled mode. */
   @Override
   public void disabledInit() {
-    
+    m_robotContainer.updateRobotMode(RobotMode.DISABLED);
     
   }
 
@@ -109,7 +110,7 @@ public class Robot extends TimedRobot {
     }
     System.out.println("!!!!!!!!!!!!!!!!!!!!!!!AUTO START");
 
-    m_robotContainer.setIsAutonomous(true);
+    m_robotContainer.updateRobotMode(RobotMode.AUTON);
     isAuto = true;
   }
 
@@ -127,7 +128,7 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
-    m_robotContainer.setIsAutonomous(false);
+    m_robotContainer.updateRobotMode(RobotMode.TELEOP);
     System.out.println("!!!!!!!!!!!!!!!!!!!!!!!TELEOP START");
     isAuto = false;
 
@@ -140,6 +141,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testInit() {
+    m_robotContainer.updateRobotMode(RobotMode.TEST);
     // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
   }
