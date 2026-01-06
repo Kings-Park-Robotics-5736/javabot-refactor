@@ -93,7 +93,7 @@ public abstract class WheelMechanism extends Mechanism {
                 () -> {return async || isFinished();},this).withName("RunWheelToSpeedCommand");
     }
 
-    public Command RunArmToPositionCommandEarlyStop(double setpointRPS) {
+    public Command RunWheelToSpeedCommandEarlyStop(double setpointRPS) {
         return new FunctionalCommand(
                 () -> {InitMotion(setpointRPS);},
                 () -> {},
@@ -101,7 +101,7 @@ public abstract class WheelMechanism extends Mechanism {
                 () -> {return isFinishedEarly();},this).withName("RunWheelToSpeedCommand");
     }
 
-    public Command RunArmManulSpeedCommand(DoubleSupplier getSpeed){
+    public Command RunWheelManualSpeedCommand(DoubleSupplier getSpeed){
         return new FunctionalCommand(
                 () -> {manualControl = true;},
                 () -> {setSpeed(getSpeed.getAsDouble());},
@@ -111,3 +111,4 @@ public abstract class WheelMechanism extends Mechanism {
     }
 
 }
+
